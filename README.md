@@ -17,7 +17,15 @@ Firebase project `taskflow-eb787` is configured for Android (`com.taskflow.taskf
 
 Enable Email/Password and Google providers in Firebase Authentication before using sign-in. The default Firestore database already exists in region `eur3`; review and configure its security rules before storing user data. Configure Google Sign-In's platform OAuth details (including Android SHA fingerprints) in Firebase/Google Cloud. Mobile Ads should use Google's official test unit IDs during development only.
 
-The initial shell defines named routes for Home, Tasks, Calendar, and Profile, plus light/dark themes. Feature code can grow into `lib/presentation`, `lib/models`, `lib/providers`, `lib/services`, `lib/repositories`, `lib/routing`, and `lib/l10n` as the requirements are implemented.
+## Implemented
+
+- Email/password registration and sign-in, Google sign-in, password reset, and sign-out.
+- A profile document at `users/{uid}` is created on first sign-in and refreshed on later sign-ins.
+- Task create, list, edit, complete/reopen, and delete under `users/{uid}/tasks/{taskId}`.
+- User-scoped Firestore access is expected by the app; the deployed Firestore rules must allow the signed-in owner to read and write their profile and task subcollection.
+- Light/dark theme preference saved locally.
+
+Feature code is organized under `lib/presentation`, `lib/models`, `lib/providers`, `lib/services`, and `lib/repositories`.
 
 The productivity advice API endpoint has not been selected; document its endpoint, response format, and usage limits here when chosen. Push notifications triggered by task actions require a trusted backend or Firebase Cloud Function. Never place FCM server credentials in the client app.
 
