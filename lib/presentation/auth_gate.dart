@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import 'auth_screen.dart';
-import 'tasks_screen.dart';
+import 'app_shell.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -56,7 +56,7 @@ class _AuthGateState extends State<AuthGate> {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       final user = snapshot.data;
-      return user == null ? const AuthScreen() : TasksScreen(user: user);
+      return user == null ? const AuthScreen() : AppShell(user: user);
     },
   );
 }

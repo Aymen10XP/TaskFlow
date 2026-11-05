@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
+import 'l10n/app_strings.dart';
 import 'presentation/auth_gate.dart';
 import 'presentation/auth_screen.dart';
+import 'presentation/task_details_screen.dart';
 import 'providers/app_preferences.dart';
 
 Future<void> main() async {
@@ -33,6 +36,14 @@ class TaskFlowApp extends StatelessWidget {
     builder: (context, preferences, _) => MaterialApp(
       title: 'TaskFlow',
       debugShowCheckedModeBanner: false,
+      locale: preferences.locale,
+      supportedLocales: AppStrings.supportedLocales,
+      localizationsDelegates: const [
+        AppStringsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       themeMode: preferences.themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF536DFE)),
@@ -46,6 +57,18 @@ class TaskFlowApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routes: {'/forgot-password': (_) => const ForgotPasswordScreen()},
+      onGenerateRoute: (settings) {
+        if (settings.name == TaskDetailsScreen.routeName) {
+          final arguments = settings.arguments;
+          if (arguments is TaskDetailsArguments) {
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => TaskDetailsScreen(arguments: arguments),
+            );
+          }
+        }
+        return null;
+      },
       home: Firebase.apps.isNotEmpty
           ? const AuthGate()
           : const _UnsupportedPlatformPage(),
