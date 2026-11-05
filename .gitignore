@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Private project history and setup notes
+/PROJECT_SETUP_NOTES.md
+
 # Symbolication related
 app.*.symbols
 
