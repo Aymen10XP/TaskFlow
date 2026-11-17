@@ -6,7 +6,9 @@ import '../services/auth_service.dart';
 import 'categories_screen.dart';
 import 'dashboard_screen.dart';
 import 'settings_screen.dart';
+import 'task_details_screen.dart';
 import 'tasks_screen.dart';
+import '../services/reminder_service.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.user, super.key});
@@ -21,11 +23,42 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _registerReminderTapHandler();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.uid != widget.user.uid) _registerReminderTapHandler();
+  }
+
+  void _registerReminderTapHandler() {
+    ReminderService.instance.setOnReminderTap((userId, taskId) {
+      if (!mounted || userId != widget.user.uid) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || userId != widget.user.uid) return;
+        Navigator.of(context).pushNamed(
+          TaskDetailsScreen.routeName,
+          arguments: TaskDetailsArguments(userId: userId, taskId: taskId),
+        );
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    ReminderService.instance.clearOnReminderTap();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final pages = [
       DashboardScreen(user: widget.user),
       TasksScreen(user: widget.user),
-      const SettingsScreen(),
+      SettingsScreen(user: widget.user),
     ];
     final titles = ['dashboard', 'tasks', 'settings'];
 

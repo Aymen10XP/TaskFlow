@@ -1,11 +1,44 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_strings.dart';
 import '../providers/app_preferences.dart';
+import '../repositories/task_repository.dart';
+import '../services/reminder_service.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({required this.user, super.key});
+
+  final User user;
+
+  Future<void> _setNotifications(
+    BuildContext context,
+    AppPreferences preferences,
+    bool enabled,
+  ) async {
+    final strings = AppStrings.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    await preferences.setNotificationsEnabled(enabled);
+    var scheduled = false;
+    try {
+      final repository = TaskRepository(userId: user.uid);
+      scheduled = await ReminderService.instance.syncTasks(
+        userId: user.uid,
+        tasks: await repository.watchTasks().first,
+        reminderTitle: strings.get('taskReminder'),
+        bodyFor: (title) => strings.get('reminderBody', {'title': title}),
+      );
+    } catch (_) {
+      scheduled = false;
+    }
+    if (!scheduled && context.mounted) {
+      await preferences.setNotificationsEnabled(false);
+      messenger.showSnackBar(
+        SnackBar(content: Text(strings.get('notificationPermissionDenied'))),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +98,8 @@ class SettingsScreen extends StatelessWidget {
             title: Text(context.tr('notifications')),
             subtitle: Text(context.tr('notificationsHint')),
             value: preferences.notificationsEnabled,
-            onChanged: preferences.setNotificationsEnabled,
+            onChanged: (value) =>
+                _setNotifications(context, preferences, value),
           ),
         ),
       ],

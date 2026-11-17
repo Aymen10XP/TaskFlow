@@ -14,6 +14,7 @@ class Task {
     required this.createdAt,
     this.dueAt,
     this.categoryId,
+    this.reminderAt,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class Task {
   final DateTime createdAt;
   final DateTime? dueAt;
   final String? categoryId;
+  final DateTime? reminderAt;
 
   factory Task.fromDocument(DocumentSnapshot<Map<String, dynamic>> document) {
     final data = document.data()!;
@@ -42,6 +44,7 @@ class Task {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       dueAt: (data['dueAt'] as Timestamp?)?.toDate(),
       categoryId: data['categoryId'] as String?,
+      reminderAt: (data['reminderAt'] as Timestamp?)?.toDate(),
     );
   }
 }

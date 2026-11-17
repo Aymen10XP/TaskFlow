@@ -10,6 +10,7 @@ import 'presentation/auth_gate.dart';
 import 'presentation/auth_screen.dart';
 import 'presentation/task_details_screen.dart';
 import 'providers/app_preferences.dart';
+import 'services/reminder_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   }
+  await ReminderService.instance.initialize();
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppPreferences()..load(),

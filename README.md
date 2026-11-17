@@ -11,7 +11,7 @@ flutter run
 
 ## Project setup
 
-The app uses Provider for state management. Core packages for Firebase Authentication, Cloud Firestore, Firebase Messaging, Google Sign-In, REST requests, persisted preferences, localization, and Google Mobile Ads are included in `pubspec.yaml`.
+The app uses Provider for state management. Core packages for Firebase Authentication, Cloud Firestore, Firebase Messaging, local task reminders, Google Sign-In, REST requests, persisted preferences, localization, and Google Mobile Ads are included in `pubspec.yaml`.
 
 Firebase project `taskflow-eb787` is configured for Android (`com.taskflow.taskflow`), iOS (`com.taskflow.taskflow`), and web. `lib/firebase_options.dart` provides the generated client options, and `android/app/google-services.json` is the Android service configuration. `main.dart` initializes Firebase before starting the app. These client configuration values identify the Firebase apps; they are not server credentials. Keep service account keys and FCM server credentials out of the client project.
 
@@ -23,6 +23,8 @@ Enable Email/Password and Google providers in Firebase Authentication before usi
 - A profile document at `users/{uid}` is created on first sign-in and refreshed on later sign-ins.
 - Task create, list, edit, complete/reopen, and delete under `users/{uid}/tasks/{taskId}`.
 - User-owned task categories, category assignment, title search, and filtering by priority, category, and due date.
+- Optional reminder date/time stored with each task and scheduled as a local Android/iOS notification; tapping a reminder opens its task after sign-in. The app requests notification permission when a reminder is first saved.
+- Optional task reminder date/time with scheduled local notifications on Android and iOS; reminders follow the notification preference and are rescheduled when tasks change.
 - User-scoped Firestore access is expected by the app; the deployed Firestore rules must allow the signed-in owner to read and write their profile and task subcollection.
 - Light/dark theme preference saved locally.
 
@@ -46,7 +48,7 @@ npm run test:firestore-rules
 
 The rules test command starts only the Firestore emulator, loads `firestore.rules`, runs the Node test suite, and shuts the emulator down. These tests do not connect to the production Firebase project.
 
-The productivity advice API endpoint has not been selected; document its endpoint, response format, and usage limits here when chosen. Push notifications triggered by task actions require a trusted backend or Firebase Cloud Function. Never place FCM server credentials in the client app.
+The productivity advice API endpoint has not been selected; document its endpoint, response format, and usage limits here when chosen. Local reminders are scheduled on the device and can be delayed by operating system battery policies; they do not replace FCM push notifications. Push notifications triggered by task actions require a trusted backend or Firebase Cloud Function. Never place FCM server credentials in the client app.
 
 ## Platform note
 

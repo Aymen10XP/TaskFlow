@@ -22,26 +22,29 @@ class TaskRepository {
       .snapshots()
       .map((snapshot) => snapshot.exists ? Task.fromDocument(snapshot) : null);
 
-  Future<void> createTask({
+  Future<String> createTask({
     required String title,
     required String description,
     required TaskStatus status,
     required TaskPriority priority,
     DateTime? dueAt,
     String? categoryId,
+    DateTime? reminderAt,
   }) async {
     final now = FieldValue.serverTimestamp();
-    await _tasks.add({
+    final reference = await _tasks.add({
       'title': title.trim(),
       'description': description.trim(),
       'status': status.name,
       'priority': priority.name,
       'dueAt': dueAt == null ? null : Timestamp.fromDate(dueAt),
       'categoryId': categoryId,
+      'reminderAt': reminderAt == null ? null : Timestamp.fromDate(reminderAt),
       'createdAt': now,
       'updatedAt': now,
       'completedAt': status == TaskStatus.done ? now : null,
     });
+    return reference.id;
   }
 
   Future<void> updateTask({
@@ -52,6 +55,7 @@ class TaskRepository {
     required TaskPriority priority,
     DateTime? dueAt,
     String? categoryId,
+    DateTime? reminderAt,
   }) async {
     await _tasks.doc(task.id).update({
       'title': title.trim(),
@@ -60,6 +64,7 @@ class TaskRepository {
       'priority': priority.name,
       'dueAt': dueAt == null ? null : Timestamp.fromDate(dueAt),
       'categoryId': categoryId,
+      'reminderAt': reminderAt == null ? null : Timestamp.fromDate(reminderAt),
       'updatedAt': FieldValue.serverTimestamp(),
       'completedAt': status == TaskStatus.done
           ? FieldValue.serverTimestamp()

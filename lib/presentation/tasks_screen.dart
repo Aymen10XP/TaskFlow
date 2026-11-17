@@ -1,11 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../models/task.dart';
 import '../models/task_category.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/task_repository.dart';
+import '../providers/app_preferences.dart';
+import '../services/reminder_service.dart';
 import '../services/auth_service.dart';
 import '../l10n/app_strings.dart';
 import 'task_details_screen.dart';
@@ -44,9 +47,8 @@ class _TasksScreenState extends State<TasksScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) => setState(
-                () => _query = value.trim().toLowerCase(),
-              ),
+              onChanged: (value) =>
+                  setState(() => _query = value.trim().toLowerCase()),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
                 hintText: context.tr('searchTasks'),
@@ -107,7 +109,8 @@ class _TasksScreenState extends State<TasksScreen> {
                       child: Text(context.tr('noDueDate')),
                     ),
                   ],
-                  onChanged: (value) => setState(() => _dueFilter = value ?? 'all'),
+                  onChanged: (value) =>
+                      setState(() => _dueFilter = value ?? 'all'),
                 ),
                 StreamBuilder<List<TaskCategory>>(
                   stream: categoryRepository.watchCategories(),
@@ -131,7 +134,8 @@ class _TasksScreenState extends State<TasksScreen> {
                           ),
                         ),
                       ],
-                      onChanged: (value) => setState(() => _categoryFilter = value),
+                      onChanged: (value) =>
+                          setState(() => _categoryFilter = value),
                     );
                   },
                 ),
@@ -168,7 +172,9 @@ class _TasksScreenState extends State<TasksScreen> {
                               tasks: tasks.where((task) {
                                 if (task.status != status) return false;
                                 if (_query.isNotEmpty &&
-                                    !task.title.toLowerCase().contains(_query)) {
+                                    !task.title.toLowerCase().contains(
+                                      _query,
+                                    )) {
                                   return false;
                                 }
                                 if (_priorityFilter != null &&
@@ -191,7 +197,8 @@ class _TasksScreenState extends State<TasksScreen> {
                                         task.status == TaskStatus.done)) {
                                   return false;
                                 }
-                                if (_dueFilter == 'none' && task.dueAt != null) {
+                                if (_dueFilter == 'none' &&
+                                    task.dueAt != null) {
                                   return false;
                                 }
                                 return true;
@@ -309,13 +316,38 @@ class _TaskTile extends StatelessWidget {
             color: Colors.transparent,
             child: Checkbox(
               value: done,
-              onChanged: (value) => _perform(
-                context,
-                () => repository.setStatus(
-                  task,
-                  value == true ? TaskStatus.done : TaskStatus.todo,
-                ),
-              ),
+              onChanged: (value) {
+                final status = value == true
+                    ? TaskStatus.done
+                    : TaskStatus.todo;
+                final enabled = context
+                    .read<AppPreferences>()
+                    .notificationsEnabled;
+                final strings = AppStrings.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                _perform(context, () async {
+                  await repository.setStatus(task, status);
+                  await _syncReminder(
+                    Task(
+                      id: task.id,
+                      title: task.title,
+                      description: task.description,
+                      status: status,
+                      priority: task.priority,
+                      createdAt: task.createdAt,
+                      dueAt: task.dueAt,
+                      categoryId: task.categoryId,
+                      reminderAt: task.reminderAt,
+                    ),
+                    repository.userId,
+                    notificationsEnabled: enabled,
+                    reminderTitle: strings.get('taskReminder'),
+                    body: strings.get('reminderBody', {'title': task.title}),
+                    errorMessage: strings.get('reminderNotScheduled'),
+                    messenger: messenger,
+                  );
+                });
+              },
             ),
           ),
         ),
@@ -385,7 +417,13 @@ class _TaskTile extends StatelessWidget {
       ),
     );
     if (shouldDelete == true && context.mounted) {
-      await _perform(context, () => repository.deleteTask(task.id));
+      await _perform(context, () async {
+        await repository.deleteTask(task.id);
+        await ReminderService.instance.cancelTaskReminder(
+          userId: repository.userId,
+          taskId: task.id,
+        );
+      });
     }
   }
 }
@@ -402,6 +440,37 @@ Future<void> _perform(
         context,
       ).showSnackBar(SnackBar(content: Text(context.tr(authErrorKey(error)))));
     }
+  }
+}
+
+Future<void> _syncReminder(
+  Task task,
+  String userId, {
+  required bool notificationsEnabled,
+  required String reminderTitle,
+  required String body,
+  required String errorMessage,
+  required ScaffoldMessengerState messenger,
+}) async {
+  final reminderAt = task.reminderAt;
+  if (!notificationsEnabled ||
+      task.status == TaskStatus.done ||
+      reminderAt == null) {
+    await ReminderService.instance.cancelTaskReminder(
+      userId: userId,
+      taskId: task.id,
+    );
+    return;
+  }
+  final scheduled = await ReminderService.instance.scheduleTaskReminder(
+    userId: userId,
+    taskId: task.id,
+    title: reminderTitle,
+    body: body,
+    reminderAt: reminderAt,
+  );
+  if (!scheduled) {
+    messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
   }
 }
 
@@ -453,6 +522,7 @@ class _TaskEditorState extends State<_TaskEditor> {
   late TaskStatus _status = widget.task?.status ?? TaskStatus.todo;
   late TaskPriority _priority = widget.task?.priority ?? TaskPriority.normal;
   late DateTime? _dueAt = widget.task?.dueAt;
+  late DateTime? _reminderAt = widget.task?.reminderAt;
   late String? _categoryId = widget.task?.categoryId;
   bool _saving = false;
 
@@ -465,19 +535,27 @@ class _TaskEditorState extends State<_TaskEditor> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final notificationsEnabled = context
+        .read<AppPreferences>()
+        .notificationsEnabled;
+    final strings = AppStrings.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final reminderFailureMessage = strings.get('reminderNotScheduled');
     setState(() => _saving = true);
     try {
       final task = widget.task;
-      if (task == null) {
-        await widget.repository.createTask(
-          title: _titleController.text,
-          description: _descriptionController.text,
-          status: _status,
-          priority: _priority,
-          dueAt: _dueAt,
-          categoryId: _categoryId,
-        );
-      } else {
+      final taskId = task == null
+          ? await widget.repository.createTask(
+              title: _titleController.text,
+              description: _descriptionController.text,
+              status: _status,
+              priority: _priority,
+              dueAt: _dueAt,
+              categoryId: _categoryId,
+              reminderAt: _reminderAt,
+            )
+          : task.id;
+      if (task != null) {
         await widget.repository.updateTask(
           task: task,
           title: _titleController.text,
@@ -486,9 +564,41 @@ class _TaskEditorState extends State<_TaskEditor> {
           priority: _priority,
           dueAt: _dueAt,
           categoryId: _categoryId,
+          reminderAt: _reminderAt,
         );
       }
-      if (mounted) Navigator.pop(context);
+      var reminderScheduled = true;
+      if (_reminderAt != null &&
+          _status != TaskStatus.done &&
+          notificationsEnabled) {
+        try {
+          reminderScheduled = await ReminderService.instance
+              .scheduleTaskReminder(
+                userId: widget.repository.userId,
+                taskId: taskId,
+                title: strings.get('taskReminder'),
+                body: strings.get('reminderBody', {
+                  'title': _titleController.text.trim(),
+                }),
+                reminderAt: _reminderAt!,
+              );
+        } catch (_) {
+          reminderScheduled = false;
+        }
+      } else {
+        await ReminderService.instance.cancelTaskReminder(
+          userId: widget.repository.userId,
+          taskId: taskId,
+        );
+      }
+      if (mounted) {
+        Navigator.pop(context);
+        if (_reminderAt != null && !reminderScheduled) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(reminderFailureMessage)),
+          );
+        }
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -509,6 +619,34 @@ class _TaskEditorState extends State<_TaskEditor> {
       lastDate: DateTime(now.year + 10),
     );
     if (date != null) setState(() => _dueAt = date);
+  }
+
+  Future<void> _chooseReminder() async {
+    final now = DateTime.now();
+    final defaultReminder = now.add(const Duration(hours: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _reminderAt ?? _dueAt ?? defaultReminder,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _reminderAt == null
+          ? TimeOfDay.fromDateTime(defaultReminder)
+          : TimeOfDay.fromDateTime(_reminderAt!),
+    );
+    if (time == null) return;
+    setState(
+      () => _reminderAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      ),
+    );
   }
 
   @override
@@ -594,9 +732,8 @@ class _TaskEditorState extends State<_TaskEditor> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<List<TaskCategory>>(
-              stream: CategoryRepository(
-                userId: widget.repository.userId,
-              ).watchCategories(),
+              stream: CategoryRepository(userId: widget.repository.userId)
+                  .watchCategories(),
               builder: (context, snapshot) {
                 final categories = snapshot.data ?? const <TaskCategory>[];
                 final selected = categories.any((c) => c.id == _categoryId)
@@ -645,6 +782,27 @@ class _TaskEditorState extends State<_TaskEditor> {
                       icon: const Icon(Icons.close),
                     ),
               onTap: _chooseDueDate,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: Text(
+                _reminderAt == null
+                    ? context.tr('setReminder')
+                    : context.tr('reminderAt', {
+                        'date': DateFormat.yMMMd(
+                          Localizations.localeOf(context).toString(),
+                        ).add_jm().format(_reminderAt!),
+                      }),
+              ),
+              trailing: _reminderAt == null
+                  ? null
+                  : IconButton(
+                      tooltip: context.tr('clearReminder'),
+                      onPressed: () => setState(() => _reminderAt = null),
+                      icon: const Icon(Icons.close),
+                    ),
+              onTap: _chooseReminder,
             ),
             const SizedBox(height: 12),
             FilledButton(

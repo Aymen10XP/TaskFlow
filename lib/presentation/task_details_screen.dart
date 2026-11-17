@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/task.dart';
 import '../repositories/task_repository.dart';
+import '../providers/app_preferences.dart';
+import '../services/reminder_service.dart';
 
 class TaskDetailsArguments {
   const TaskDetailsArguments({required this.userId, required this.taskId});
@@ -109,14 +112,18 @@ class _Details extends StatelessWidget {
                       .add_jm()
                       .format(task.dueAt!),
           ),
+          _InformationCard(
+            icon: Icons.notifications_active_outlined,
+            label: context.tr('reminder'),
+            value: task.reminderAt == null
+                ? context.tr('notSet')
+                : DateFormat.yMMMMd(Localizations.localeOf(context).toString())
+                      .add_jm()
+                      .format(task.reminderAt!),
+          ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: () async {
-              final next = task.status == TaskStatus.done
-                  ? TaskStatus.todo
-                  : TaskStatus.done;
-              await repository.setStatus(task, next);
-            },
+            onPressed: () => _toggleStatus(context),
             icon: Icon(
               task.status == TaskStatus.done ? Icons.undo : Icons.check,
             ),
@@ -129,6 +136,47 @@ class _Details extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _toggleStatus(BuildContext context) async {
+    final next = task.status == TaskStatus.done
+        ? TaskStatus.todo
+        : TaskStatus.done;
+    final notificationsEnabled = context
+        .read<AppPreferences>()
+        .notificationsEnabled;
+    final strings = AppStrings.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await repository.setStatus(task, next);
+      if (next == TaskStatus.done ||
+          task.reminderAt == null ||
+          !notificationsEnabled) {
+        await ReminderService.instance.cancelTaskReminder(
+          userId: repository.userId,
+          taskId: task.id,
+        );
+      } else {
+        final scheduled = await ReminderService.instance.scheduleTaskReminder(
+          userId: repository.userId,
+          taskId: task.id,
+          title: strings.get('taskReminder'),
+          body: strings.get('reminderBody', {'title': task.title}),
+          reminderAt: task.reminderAt!,
+        );
+        if (!scheduled && context.mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(strings.get('reminderNotScheduled'))),
+          );
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(strings.get('errorGeneric'))),
+        );
+      }
+    }
   }
 }
 
