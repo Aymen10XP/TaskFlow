@@ -208,7 +208,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(context.tr(_registering ? 'signUp' : 'signIn')),
+                          : Text(
+                              context.tr(_registering ? 'signUp' : 'signIn'),
+                            ),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
@@ -262,17 +264,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await AuthService.instance.sendPasswordReset(_emailController.text);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('resetLinkSent'))),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.tr('resetLinkSent'))));
         Navigator.pop(context);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-              SnackBar(content: Text(context.tr(authErrorKey(error)))),
-            );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr(authErrorKey(error)))),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);

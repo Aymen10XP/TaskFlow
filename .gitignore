@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 /doc/
+/node_modules/
 
 # Private project history and setup notes
 /PROJECT_SETUP_NOTES.md

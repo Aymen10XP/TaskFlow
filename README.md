@@ -27,6 +27,24 @@ Enable Email/Password and Google providers in Firebase Authentication before usi
 
 Feature code is organized under `lib/presentation`, `lib/models`, `lib/providers`, `lib/services`, and `lib/repositories`.
 
+## Tests
+
+Run Flutter unit and widget tests with:
+
+```sh
+flutter test
+```
+
+Task repository tests use an in-memory Firestore fake. Firestore security rules are tested against the local Emulator Suite, using the isolated `demo-taskflow` project ID. The rules test requires Node.js 24.12 or newer and the Firebase CLI. Install the CLI if it is not already available, then install the Node test dependencies:
+
+```sh
+npm install --global firebase-tools
+npm install
+npm run test:firestore-rules
+```
+
+The rules test command starts only the Firestore emulator, loads `firestore.rules`, runs the Node test suite, and shuts the emulator down. These tests do not connect to the production Firebase project.
+
 The productivity advice API endpoint has not been selected; document its endpoint, response format, and usage limits here when chosen. Push notifications triggered by task actions require a trusted backend or Firebase Cloud Function. Never place FCM server credentials in the client app.
 
 ## Platform note

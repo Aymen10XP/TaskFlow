@@ -149,9 +149,9 @@ class _TaskTile extends StatelessWidget {
     final dueText = task.dueAt == null
         ? null
         : context.tr('dueAt', {
-            'date': DateFormat.yMMMd(
-              Localizations.localeOf(context).toString(),
-            ).add_jm().format(task.dueAt!),
+            'date': DateFormat.yMMMd(Localizations.localeOf(context).toString())
+                .add_jm()
+                .format(task.dueAt!),
           });
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -252,21 +252,19 @@ Future<void> _perform(
     await action();
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-            SnackBar(content: Text(context.tr(authErrorKey(error)))),
-          );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr(authErrorKey(error)))));
     }
   }
 }
 
-String _priorityLabel(BuildContext context, TaskPriority priority) => switch (
-  priority
-) {
-  TaskPriority.low => context.tr('low'),
-  TaskPriority.normal => context.tr('normal'),
-  TaskPriority.high => context.tr('high'),
-};
+String _priorityLabel(BuildContext context, TaskPriority priority) =>
+    switch (priority) {
+      TaskPriority.low => context.tr('low'),
+      TaskPriority.normal => context.tr('normal'),
+      TaskPriority.high => context.tr('high'),
+    };
 
 class _MessageState extends StatelessWidget {
   const _MessageState({required this.icon, required this.message});
@@ -344,10 +342,9 @@ class _TaskEditorState extends State<_TaskEditor> {
       if (mounted) Navigator.pop(context);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-              SnackBar(content: Text(context.tr(authErrorKey(error)))),
-            );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr(authErrorKey(error)))),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -438,7 +435,7 @@ class _TaskEditorState extends State<_TaskEditor> {
                   .map(
                     (priority) => DropdownMenuItem(
                       value: priority,
-                      child: Text(_priorityLabel(priority)),
+                      child: Text(_priorityLabel(context, priority)),
                     ),
                   )
                   .toList(),
@@ -490,10 +487,9 @@ class _TaskEditorState extends State<_TaskEditor> {
   );
 }
 
-String _statusLabel(BuildContext context, TaskStatus status) => switch (
-  status
-) {
-  TaskStatus.todo => context.tr('todo'),
-  TaskStatus.inProgress => context.tr('inProgress'),
-  TaskStatus.done => context.tr('done'),
-};
+String _statusLabel(BuildContext context, TaskStatus status) =>
+    switch (status) {
+      TaskStatus.todo => context.tr('todo'),
+      TaskStatus.inProgress => context.tr('inProgress'),
+      TaskStatus.done => context.tr('done'),
+    };

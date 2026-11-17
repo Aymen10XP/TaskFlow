@@ -16,17 +16,12 @@ void main() {
 
   test('localized strings substitute named arguments', () {
     expect(
-      AppStrings(const Locale('fr')).get(
-        'dueAt',
-        {'date': '17 nov.'},
-      ),
+      AppStrings(const Locale('fr')).get('dueAt', {'date': '17 nov.'}),
       'Échéance : 17 nov.',
     );
     expect(
-      AppStrings(const Locale('ar')).get(
-        'deleteConfirmation',
-        {'title': 'مهمة'},
-      ),
+      AppStrings(const Locale('ar'))
+          .get('deleteConfirmation', {'title': 'مهمة'}),
       'سيتم حذف «مهمة» نهائيًا.',
     );
   });

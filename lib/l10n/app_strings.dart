@@ -11,7 +11,8 @@ class AppStrings {
       Localizations.of<AppStrings>(context, AppStrings)!;
 
   String get(String key, [Map<String, String> arguments = const {}]) {
-    var value = _values[locale.languageCode]?[key] ?? _values['en']![key] ?? key;
+    var value =
+        _values[locale.languageCode]?[key] ?? _values['en']![key] ?? key;
     for (final argument in arguments.entries) {
       value = value.replaceAll('{${argument.key}}', argument.value);
     }
@@ -92,19 +93,24 @@ class AppStrings {
       'googleSignIn': 'Continue with Google',
       'forgotPassword': 'Forgot password?',
       'resetPassword': 'Reset password',
-      'resetPasswordIntro': 'Enter your account email and we’ll send a reset link.',
+      'resetPasswordIntro':
+          'Enter your account email and we’ll send a reset link.',
       'sendResetLink': 'Send reset link',
-      'resetLinkSent': 'If an account exists for that email, a reset link has been sent.',
+      'resetLinkSent':
+          'If an account exists for that email, a reset link has been sent.',
       'unsupportedPlatform': 'Firebase is configured for Android, iOS, and web. Run TaskFlow on one of those platforms.',
       'errorInvalidEmail': 'Enter a valid email address.',
       'errorEmailInUse': 'An account already exists for this email.',
-      'errorWeakPassword': 'Choose a stronger password (at least 6 characters).',
+      'errorWeakPassword':
+          'Choose a stronger password (at least 6 characters).',
       'errorInvalidCredentials': 'Email or password is incorrect.',
       'errorUserDisabled': 'This account has been disabled.',
       'errorTooManyRequests': 'Too many attempts. Wait a little and try again.',
       'errorNetwork': 'Network error. Check your connection and try again.',
-      'errorProviderDisabled': 'This sign-in method is not enabled in Firebase yet.',
-      'errorPermissionDenied': 'Firebase denied this request. Check the Firestore security rules.',
+      'errorProviderDisabled':
+          'This sign-in method is not enabled in Firebase yet.',
+      'errorPermissionDenied':
+          'Firebase denied this request. Check the Firestore security rules.',
       'errorUnsupported': 'This feature is unavailable on this platform.',
       'errorGeneric': 'Something went wrong. Please try again.',
     },
@@ -141,7 +147,8 @@ class AppStrings {
       'appearance': 'Apparence',
       'language': 'Langue',
       'notifications': 'Notifications',
-      'notificationsHint': 'Recevoir des rappels et des mises à jour des tâches',
+      'notificationsHint':
+          'Recevoir des rappels et des mises à jour des tâches',
       'light': 'Clair',
       'dark': 'Sombre',
       'system': 'Système',
@@ -181,20 +188,25 @@ class AppStrings {
       'googleSignIn': 'Continuer avec Google',
       'forgotPassword': 'Mot de passe oublié ?',
       'resetPassword': 'Réinitialiser le mot de passe',
-      'resetPasswordIntro': 'Saisissez votre e-mail pour recevoir un lien de réinitialisation.',
+      'resetPasswordIntro':
+          'Saisissez votre e-mail pour recevoir un lien de réinitialisation.',
       'sendResetLink': 'Envoyer le lien',
       'resetLinkSent': 'Si un compte correspond à cette adresse, un lien de réinitialisation a été envoyé.',
       'unsupportedPlatform': 'Firebase est configuré pour Android, iOS et le web. Lancez TaskFlow sur une de ces plateformes.',
       'errorInvalidEmail': 'Saisissez une adresse e-mail valide.',
       'errorEmailInUse': 'Un compte existe déjà pour cette adresse e-mail.',
-      'errorWeakPassword': 'Choisissez un mot de passe plus sûr (6 caractères minimum).',
+      'errorWeakPassword':
+          'Choisissez un mot de passe plus sûr (6 caractères minimum).',
       'errorInvalidCredentials': 'Adresse e-mail ou mot de passe incorrect.',
       'errorUserDisabled': 'Ce compte a été désactivé.',
       'errorTooManyRequests': 'Trop de tentatives. Réessayez dans un instant.',
       'errorNetwork': 'Erreur réseau. Vérifiez votre connexion puis réessayez.',
-      'errorProviderDisabled': 'Cette méthode de connexion n’est pas activée dans Firebase.',
-      'errorPermissionDenied': 'Firebase a refusé la requête. Vérifiez les règles Firestore.',
-      'errorUnsupported': 'Cette fonctionnalité n’est pas disponible sur cette plateforme.',
+      'errorProviderDisabled':
+          'Cette méthode de connexion n’est pas activée dans Firebase.',
+      'errorPermissionDenied':
+          'Firebase a refusé la requête. Vérifiez les règles Firestore.',
+      'errorUnsupported':
+          'Cette fonctionnalité n’est pas disponible sur cette plateforme.',
       'errorGeneric': 'Une erreur est survenue. Veuillez réessayer.',
     },
     'ar': {
@@ -272,7 +284,8 @@ class AppStrings {
       'resetPassword': 'إعادة تعيين كلمة المرور',
       'resetPasswordIntro': 'أدخل بريدك الإلكتروني لإرسال رابط إعادة التعيين.',
       'sendResetLink': 'إرسال رابط إعادة التعيين',
-      'resetLinkSent': 'إذا كان هناك حساب بهذا البريد، فسيتم إرسال رابط إعادة التعيين.',
+      'resetLinkSent':
+          'إذا كان هناك حساب بهذا البريد، فسيتم إرسال رابط إعادة التعيين.',
       'unsupportedPlatform': 'تم إعداد Firebase لنظام Android وiOS والويب. شغّل TaskFlow على إحدى هذه المنصات.',
       'errorInvalidEmail': 'أدخل عنوان بريد إلكتروني صالحًا.',
       'errorEmailInUse': 'يوجد حساب بالفعل بهذا البريد الإلكتروني.',
