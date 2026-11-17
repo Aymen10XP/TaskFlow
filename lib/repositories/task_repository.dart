@@ -28,6 +28,7 @@ class TaskRepository {
     required TaskStatus status,
     required TaskPriority priority,
     DateTime? dueAt,
+    String? categoryId,
   }) async {
     final now = FieldValue.serverTimestamp();
     await _tasks.add({
@@ -36,6 +37,7 @@ class TaskRepository {
       'status': status.name,
       'priority': priority.name,
       'dueAt': dueAt == null ? null : Timestamp.fromDate(dueAt),
+      'categoryId': categoryId,
       'createdAt': now,
       'updatedAt': now,
       'completedAt': status == TaskStatus.done ? now : null,
@@ -49,6 +51,7 @@ class TaskRepository {
     required TaskStatus status,
     required TaskPriority priority,
     DateTime? dueAt,
+    String? categoryId,
   }) async {
     await _tasks.doc(task.id).update({
       'title': title.trim(),
@@ -56,6 +59,7 @@ class TaskRepository {
       'status': status.name,
       'priority': priority.name,
       'dueAt': dueAt == null ? null : Timestamp.fromDate(dueAt),
+      'categoryId': categoryId,
       'updatedAt': FieldValue.serverTimestamp(),
       'completedAt': status == TaskStatus.done
           ? FieldValue.serverTimestamp()

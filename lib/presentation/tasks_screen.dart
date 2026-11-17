@@ -3,23 +3,141 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/task.dart';
+import '../models/task_category.dart';
+import '../repositories/category_repository.dart';
 import '../repositories/task_repository.dart';
 import '../services/auth_service.dart';
 import '../l10n/app_strings.dart';
 import 'task_details_screen.dart';
 
-class TasksScreen extends StatelessWidget {
+class TasksScreen extends StatefulWidget {
   const TasksScreen({required this.user, super.key});
 
   final User user;
 
   @override
+  State<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends State<TasksScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+  TaskPriority? _priorityFilter;
+  String? _categoryFilter;
+  String _dueFilter = 'all';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final repository = TaskRepository(userId: user.uid);
+    final repository = TaskRepository(userId: widget.user.uid);
+    final categoryRepository = CategoryRepository(userId: widget.user.uid);
     return DefaultTabController(
       length: 3,
       child: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(
+                () => _query = value.trim().toLowerCase(),
+              ),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: context.tr('searchTasks'),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: context.tr('clearSearch'),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                DropdownButton<TaskPriority?>(
+                  value: _priorityFilter,
+                  hint: Text(context.tr('priority')),
+                  items: [
+                    DropdownMenuItem<TaskPriority?>(
+                      value: null,
+                      child: Text(context.tr('all')),
+                    ),
+                    ...TaskPriority.values.map(
+                      (p) => DropdownMenuItem<TaskPriority?>(
+                        value: p,
+                        child: Text(_priorityLabel(context, p)),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => _priorityFilter = value),
+                ),
+                DropdownButton<String>(
+                  value: _dueFilter,
+                  items: [
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text(context.tr('allDates')),
+                    ),
+                    DropdownMenuItem(
+                      value: 'upcoming',
+                      child: Text(context.tr('upcoming')),
+                    ),
+                    DropdownMenuItem(
+                      value: 'overdue',
+                      child: Text(context.tr('overdue')),
+                    ),
+                    DropdownMenuItem(
+                      value: 'none',
+                      child: Text(context.tr('noDueDate')),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => _dueFilter = value ?? 'all'),
+                ),
+                StreamBuilder<List<TaskCategory>>(
+                  stream: categoryRepository.watchCategories(),
+                  builder: (context, snapshot) {
+                    final list = snapshot.data ?? const <TaskCategory>[];
+                    final selected = list.any((c) => c.id == _categoryFilter)
+                        ? _categoryFilter
+                        : null;
+                    return DropdownButton<String?>(
+                      value: selected,
+                      hint: Text(context.tr('category')),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(context.tr('allCategories')),
+                        ),
+                        ...list.map(
+                          (c) => DropdownMenuItem<String?>(
+                            value: c.id,
+                            child: Text(c.name),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) => setState(() => _categoryFilter = value),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
           TabBar(
             tabs: [
               Tab(text: context.tr('todo')),
@@ -47,11 +165,39 @@ class TasksScreen extends StatelessWidget {
                       children: TaskStatus.values
                           .map(
                             (status) => _TaskList(
-                              tasks: tasks
-                                  .where((task) => task.status == status)
-                                  .toList(),
+                              tasks: tasks.where((task) {
+                                if (task.status != status) return false;
+                                if (_query.isNotEmpty &&
+                                    !task.title.toLowerCase().contains(_query)) {
+                                  return false;
+                                }
+                                if (_priorityFilter != null &&
+                                    task.priority != _priorityFilter) {
+                                  return false;
+                                }
+                                if (_categoryFilter != null &&
+                                    task.categoryId != _categoryFilter) {
+                                  return false;
+                                }
+                                final now = DateTime.now();
+                                if (_dueFilter == 'upcoming' &&
+                                    (task.dueAt == null ||
+                                        task.dueAt!.isBefore(now))) {
+                                  return false;
+                                }
+                                if (_dueFilter == 'overdue' &&
+                                    (task.dueAt == null ||
+                                        !task.dueAt!.isBefore(now) ||
+                                        task.status == TaskStatus.done)) {
+                                  return false;
+                                }
+                                if (_dueFilter == 'none' && task.dueAt != null) {
+                                  return false;
+                                }
+                                return true;
+                              }).toList(),
                               repository: repository,
-                              userId: user.uid,
+                              userId: widget.user.uid,
                               onEdit: (task) =>
                                   _openEditor(context, repository, task: task),
                             ),
@@ -307,6 +453,7 @@ class _TaskEditorState extends State<_TaskEditor> {
   late TaskStatus _status = widget.task?.status ?? TaskStatus.todo;
   late TaskPriority _priority = widget.task?.priority ?? TaskPriority.normal;
   late DateTime? _dueAt = widget.task?.dueAt;
+  late String? _categoryId = widget.task?.categoryId;
   bool _saving = false;
 
   @override
@@ -328,6 +475,7 @@ class _TaskEditorState extends State<_TaskEditor> {
           status: _status,
           priority: _priority,
           dueAt: _dueAt,
+          categoryId: _categoryId,
         );
       } else {
         await widget.repository.updateTask(
@@ -337,6 +485,7 @@ class _TaskEditorState extends State<_TaskEditor> {
           status: _status,
           priority: _priority,
           dueAt: _dueAt,
+          categoryId: _categoryId,
         );
       }
       if (mounted) Navigator.pop(context);
@@ -441,6 +590,38 @@ class _TaskEditorState extends State<_TaskEditor> {
                   .toList(),
               onChanged: (priority) {
                 if (priority != null) setState(() => _priority = priority);
+              },
+            ),
+            const SizedBox(height: 8),
+            StreamBuilder<List<TaskCategory>>(
+              stream: CategoryRepository(
+                userId: widget.repository.userId,
+              ).watchCategories(),
+              builder: (context, snapshot) {
+                final categories = snapshot.data ?? const <TaskCategory>[];
+                final selected = categories.any((c) => c.id == _categoryId)
+                    ? _categoryId
+                    : null;
+                return DropdownButtonFormField<String?>(
+                  initialValue: selected,
+                  decoration: InputDecoration(
+                    labelText: context.tr('category'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(context.tr('noCategory')),
+                    ),
+                    ...categories.map(
+                      (c) => DropdownMenuItem<String?>(
+                        value: c.id,
+                        child: Text(c.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => _categoryId = value),
+                );
               },
             ),
             const SizedBox(height: 8),

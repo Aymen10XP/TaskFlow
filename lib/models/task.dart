@@ -13,6 +13,7 @@ class Task {
     required this.priority,
     required this.createdAt,
     this.dueAt,
+    this.categoryId,
   });
 
   final String id;
@@ -22,6 +23,7 @@ class Task {
   final TaskPriority priority;
   final DateTime createdAt;
   final DateTime? dueAt;
+  final String? categoryId;
 
   factory Task.fromDocument(DocumentSnapshot<Map<String, dynamic>> document) {
     final data = document.data()!;
@@ -39,6 +41,7 @@ class Task {
       ),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       dueAt: (data['dueAt'] as Timestamp?)?.toDate(),
+      categoryId: data['categoryId'] as String?,
     );
   }
 }

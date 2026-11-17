@@ -22,6 +22,7 @@ Enable Email/Password and Google providers in Firebase Authentication before usi
 - Email/password registration and sign-in, Google sign-in, password reset, and sign-out.
 - A profile document at `users/{uid}` is created on first sign-in and refreshed on later sign-ins.
 - Task create, list, edit, complete/reopen, and delete under `users/{uid}/tasks/{taskId}`.
+- User-owned task categories, category assignment, title search, and filtering by priority, category, and due date.
 - User-scoped Firestore access is expected by the app; the deployed Firestore rules must allow the signed-in owner to read and write their profile and task subcollection.
 - Light/dark theme preference saved locally.
 

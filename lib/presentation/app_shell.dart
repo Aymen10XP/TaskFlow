@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../services/auth_service.dart';
+import 'categories_screen.dart';
 import 'dashboard_screen.dart';
 import 'settings_screen.dart';
 import 'tasks_screen.dart';
@@ -64,6 +65,19 @@ class _AppShellState extends State<AppShell> {
                     Navigator.pop(context);
                   },
                 ),
+              ListTile(
+                leading: const Icon(Icons.category_outlined),
+                title: Text(context.tr('categories')),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => CategoriesScreen(user: widget.user),
+                    ),
+                  );
+                },
+              ),
               const Spacer(),
               ListTile(
                 leading: const Icon(Icons.logout),
