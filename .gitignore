@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/doc/
 
 # Private project history and setup notes
 /PROJECT_SETUP_NOTES.md

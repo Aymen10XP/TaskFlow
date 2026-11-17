@@ -17,6 +17,11 @@ class TaskRepository {
       .snapshots()
       .map((snapshot) => snapshot.docs.map(Task.fromDocument).toList());
 
+  Stream<Task?> watchTask(String taskId) => _tasks
+      .doc(taskId)
+      .snapshots()
+      .map((snapshot) => snapshot.exists ? Task.fromDocument(snapshot) : null);
+
   Future<void> createTask({
     required String title,
     required String description,

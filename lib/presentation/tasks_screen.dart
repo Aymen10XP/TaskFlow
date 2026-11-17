@@ -1,12 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
 import '../models/task.dart';
-import '../providers/app_preferences.dart';
 import '../repositories/task_repository.dart';
 import '../services/auth_service.dart';
+import '../l10n/app_strings.dart';
+import 'task_details_screen.dart';
 
 class TasksScreen extends StatelessWidget {
   const TasksScreen({required this.user, super.key});
@@ -16,78 +16,60 @@ class TasksScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repository = TaskRepository(userId: user.uid);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My tasks'),
-        actions: [
-          IconButton(
-            tooltip: 'Toggle theme',
-            onPressed: () => context.read<AppPreferences>().toggleTheme(),
-            icon: Icon(
-              Theme.of(context).brightness == Brightness.dark
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Sign out',
-            onPressed: () async {
-              try {
-                await AuthService.instance.signOut();
-              } catch (error) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(friendlyAuthError(error))),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(context, repository),
-        icon: const Icon(Icons.add),
-        label: const Text('New task'),
-      ),
-      body: Column(
+    return DefaultTabController(
+      length: 3,
+      child: Column(
         children: [
-          _AccountHeader(user: user),
+          TabBar(
+            tabs: [
+              Tab(text: context.tr('todo')),
+              Tab(text: context.tr('inProgress')),
+              Tab(text: context.tr('done')),
+            ],
+          ),
           Expanded(
-            child: StreamBuilder<List<Task>>(
-              stream: repository.watchTasks(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return _MessageState(
-                    icon: Icons.cloud_off_outlined,
-                    message: friendlyAuthError(snapshot.error!),
-                  );
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final tasks = snapshot.data!;
-                if (tasks.isEmpty) {
-                  return const _MessageState(
-                    icon: Icons.checklist_outlined,
-                    message: 'No tasks yet. Add one to get started.',
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-                    return _TaskTile(
-                      task: task,
-                      repository: repository,
-                      onEdit: () =>
-                          _openEditor(context, repository, task: task),
+            child: Stack(
+              children: [
+                StreamBuilder<List<Task>>(
+                  stream: repository.watchTasks(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return _MessageState(
+                        icon: Icons.cloud_off_outlined,
+                        message: friendlyAuthError(snapshot.error!),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final tasks = snapshot.data!;
+                    return TabBarView(
+                      children: TaskStatus.values
+                          .map(
+                            (status) => _TaskList(
+                              tasks: tasks
+                                  .where((task) => task.status == status)
+                                  .toList(),
+                              repository: repository,
+                              userId: user.uid,
+                              onEdit: (task) =>
+                                  _openEditor(context, repository, task: task),
+                            ),
+                          )
+                          .toList(),
                     );
                   },
-                );
-              },
+                ),
+                PositionedDirectional(
+                  end: 18,
+                  bottom: 18,
+                  child: FloatingActionButton.extended(
+                    onPressed: () => _openEditor(context, repository),
+                    icon: const Icon(Icons.add),
+                    label: Text(context.tr('newTask')),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -107,31 +89,43 @@ class TasksScreen extends StatelessWidget {
   );
 }
 
-class _AccountHeader extends StatelessWidget {
-  const _AccountHeader({required this.user});
+class _TaskList extends StatelessWidget {
+  const _TaskList({
+    required this.tasks,
+    required this.repository,
+    required this.userId,
+    required this.onEdit,
+  });
 
-  final User user;
+  final List<Task> tasks;
+  final TaskRepository repository;
+  final String userId;
+  final ValueChanged<Task> onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final name = user.displayName?.trim();
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: user.photoURL == null
-            ? null
-            : NetworkImage(user.photoURL!),
-        child: user.photoURL == null
-            ? Text(
-                (name?.isNotEmpty ?? false)
-                    ? name![0].toUpperCase()
-                    : (user.email?.isNotEmpty ?? false)
-                    ? user.email![0].toUpperCase()
-                    : '?',
-              )
-            : null,
-      ),
-      title: Text(name?.isNotEmpty == true ? name! : 'Your account'),
-      subtitle: Text(user.email ?? ''),
+    if (tasks.isEmpty) {
+      return _MessageState(
+        icon: Icons.checklist_outlined,
+        message: context.tr('noTasks'),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return _TaskTile(
+          task: task,
+          repository: repository,
+          onEdit: () => onEdit(task),
+          onOpen: () => Navigator.pushNamed(
+            context,
+            TaskDetailsScreen.routeName,
+            arguments: TaskDetailsArguments(userId: userId, taskId: task.id),
+          ),
+        );
+      },
     );
   }
 }
@@ -141,11 +135,13 @@ class _TaskTile extends StatelessWidget {
     required this.task,
     required this.repository,
     required this.onEdit,
+    required this.onOpen,
   });
 
   final Task task;
   final TaskRepository repository;
   final VoidCallback onEdit;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -156,13 +152,20 @@ class _TaskTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
-        leading: Checkbox(
-          value: done,
-          onChanged: (value) => _perform(
-            context,
-            () => repository.setStatus(
-              task,
-              value == true ? TaskStatus.done : TaskStatus.todo,
+        onTap: onOpen,
+        leading: Hero(
+          tag: 'task-${task.id}',
+          child: Material(
+            color: Colors.transparent,
+            child: Checkbox(
+              value: done,
+              onChanged: (value) => _perform(
+                context,
+                () => repository.setStatus(
+                  task,
+                  value == true ? TaskStatus.done : TaskStatus.todo,
+                ),
+              ),
             ),
           ),
         ),
