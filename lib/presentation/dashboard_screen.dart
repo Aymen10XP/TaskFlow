@@ -19,7 +19,7 @@ class DashboardScreen extends StatelessWidget {
         if (snapshot.hasError) {
           return _DashboardMessage(
             icon: Icons.cloud_off_outlined,
-            message: snapshot.error.toString(),
+            message: context.tr('errorGeneric'),
           );
         }
         if (!snapshot.hasData) {

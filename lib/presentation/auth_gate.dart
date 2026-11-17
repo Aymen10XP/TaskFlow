@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/auth_service.dart';
 import 'auth_screen.dart';
 import 'app_shell.dart';
@@ -36,7 +37,7 @@ class _AuthGateState extends State<AuthGate> {
                   const Icon(Icons.cloud_off_outlined, size: 48),
                   const SizedBox(height: 12),
                   Text(
-                    friendlyAuthError(snapshot.error!),
+                    context.tr(authErrorKey(snapshot.error!)),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -44,7 +45,7 @@ class _AuthGateState extends State<AuthGate> {
                     onPressed: () => setState(
                       () => _userStream = AuthService.instance.userStream,
                     ),
-                    child: const Text('Retry'),
+                    child: Text(context.tr('retry')),
                   ),
                 ],
               ),

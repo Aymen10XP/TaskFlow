@@ -36,7 +36,7 @@ class TasksScreen extends StatelessWidget {
                     if (snapshot.hasError) {
                       return _MessageState(
                         icon: Icons.cloud_off_outlined,
-                        message: friendlyAuthError(snapshot.error!),
+                        message: context.tr(authErrorKey(snapshot.error!)),
                       );
                     }
                     if (!snapshot.hasData) {
@@ -148,7 +148,11 @@ class _TaskTile extends StatelessWidget {
     final done = task.status == TaskStatus.done;
     final dueText = task.dueAt == null
         ? null
-        : 'Due ${DateFormat.yMMMd().add_jm().format(task.dueAt!)}';
+        : context.tr('dueAt', {
+            'date': DateFormat.yMMMd(
+              Localizations.localeOf(context).toString(),
+            ).add_jm().format(task.dueAt!),
+          });
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
@@ -186,7 +190,7 @@ class _TaskTile extends StatelessWidget {
               children: [
                 Chip(
                   visualDensity: VisualDensity.compact,
-                  label: Text(_priorityLabel(task.priority)),
+                  label: Text(_priorityLabel(context, task.priority)),
                 ),
                 if (dueText != null)
                   Chip(
@@ -207,9 +211,9 @@ class _TaskTile extends StatelessWidget {
               _confirmDelete(context);
             }
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'edit', child: Text('Edit')),
-            PopupMenuItem(value: 'delete', child: Text('Delete')),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'edit', child: Text(context.tr('edit'))),
+            PopupMenuItem(value: 'delete', child: Text(context.tr('delete'))),
           ],
         ),
       ),
@@ -220,16 +224,16 @@ class _TaskTile extends StatelessWidget {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete task?'),
-        content: Text('“${task.title}” will be permanently deleted.'),
+        title: Text(context.tr('deleteTask')),
+        content: Text(context.tr('deleteConfirmation', {'title': task.title})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.tr('delete')),
           ),
         ],
       ),
@@ -249,15 +253,19 @@ Future<void> _perform(
   } catch (error) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(friendlyAuthError(error))));
+          .showSnackBar(
+            SnackBar(content: Text(context.tr(authErrorKey(error)))),
+          );
     }
   }
 }
 
-String _priorityLabel(TaskPriority priority) => switch (priority) {
-  TaskPriority.low => 'Low',
-  TaskPriority.normal => 'Normal',
-  TaskPriority.high => 'High',
+String _priorityLabel(BuildContext context, TaskPriority priority) => switch (
+  priority
+) {
+  TaskPriority.low => context.tr('low'),
+  TaskPriority.normal => context.tr('normal'),
+  TaskPriority.high => context.tr('high'),
 };
 
 class _MessageState extends StatelessWidget {
@@ -337,7 +345,9 @@ class _TaskEditorState extends State<_TaskEditor> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyAuthError(error))));
+            .showSnackBar(
+              SnackBar(content: Text(context.tr(authErrorKey(error)))),
+            );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -371,7 +381,7 @@ class _TaskEditorState extends State<_TaskEditor> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              widget.task == null ? 'Create task' : 'Edit task',
+              context.tr(widget.task == null ? 'createTask' : 'editTask'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 18),
@@ -379,12 +389,12 @@ class _TaskEditorState extends State<_TaskEditor> {
               controller: _titleController,
               autofocus: true,
               maxLength: 120,
-              decoration: const InputDecoration(
-                labelText: 'Title *',
+              decoration: InputDecoration(
+                labelText: context.tr('taskTitle'),
                 border: OutlineInputBorder(),
               ),
               validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Enter a title.'
+                  ? context.tr('enterTitle')
                   : null,
             ),
             const SizedBox(height: 8),
@@ -392,8 +402,8 @@ class _TaskEditorState extends State<_TaskEditor> {
               controller: _descriptionController,
               maxLines: 3,
               maxLength: 1000,
-              decoration: const InputDecoration(
-                labelText: 'Description',
+              decoration: InputDecoration(
+                labelText: context.tr('description'),
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(),
               ),
@@ -401,15 +411,15 @@ class _TaskEditorState extends State<_TaskEditor> {
             const SizedBox(height: 8),
             DropdownButtonFormField<TaskStatus>(
               initialValue: _status,
-              decoration: const InputDecoration(
-                labelText: 'Status',
+              decoration: InputDecoration(
+                labelText: context.tr('status'),
                 border: OutlineInputBorder(),
               ),
               items: TaskStatus.values
                   .map(
                     (status) => DropdownMenuItem(
                       value: status,
-                      child: Text(_statusLabel(status)),
+                      child: Text(_statusLabel(context, status)),
                     ),
                   )
                   .toList(),
@@ -420,8 +430,8 @@ class _TaskEditorState extends State<_TaskEditor> {
             const SizedBox(height: 12),
             DropdownButtonFormField<TaskPriority>(
               initialValue: _priority,
-              decoration: const InputDecoration(
-                labelText: 'Priority',
+              decoration: InputDecoration(
+                labelText: context.tr('priority'),
                 border: OutlineInputBorder(),
               ),
               items: TaskPriority.values
@@ -442,13 +452,17 @@ class _TaskEditorState extends State<_TaskEditor> {
               leading: const Icon(Icons.event_outlined),
               title: Text(
                 _dueAt == null
-                    ? 'Add due date'
-                    : 'Due ${DateFormat.yMMMd().format(_dueAt!)}',
+                    ? context.tr('addDueDate')
+                    : context.tr('dueAt', {
+                        'date': DateFormat.yMMMd(
+                          Localizations.localeOf(context).toString(),
+                        ).format(_dueAt!),
+                      }),
               ),
               trailing: _dueAt == null
                   ? null
                   : IconButton(
-                      tooltip: 'Clear due date',
+                      tooltip: context.tr('clearDueDate'),
                       onPressed: () => setState(() => _dueAt = null),
                       icon: const Icon(Icons.close),
                     ),
@@ -463,7 +477,11 @@ class _TaskEditorState extends State<_TaskEditor> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(widget.task == null ? 'Create task' : 'Save changes'),
+                  : Text(
+                      context.tr(
+                        widget.task == null ? 'createTask' : 'saveChanges',
+                      ),
+                    ),
             ),
           ],
         ),
@@ -472,8 +490,10 @@ class _TaskEditorState extends State<_TaskEditor> {
   );
 }
 
-String _statusLabel(TaskStatus status) => switch (status) {
-  TaskStatus.todo => 'To do',
-  TaskStatus.inProgress => 'In progress',
-  TaskStatus.done => 'Done',
+String _statusLabel(BuildContext context, TaskStatus status) => switch (
+  status
+) {
+  TaskStatus.todo => context.tr('todo'),
+  TaskStatus.inProgress => context.tr('inProgress'),
+  TaskStatus.done => context.tr('done'),
 };

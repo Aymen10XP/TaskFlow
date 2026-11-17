@@ -27,7 +27,7 @@ class TaskDetailsScreen extends StatelessWidget {
         stream: repository.watchTask(arguments.taskId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
+            return Center(child: Text(context.tr('errorGeneric')));
           }
           if (!snapshot.hasData &&
               snapshot.connectionState == ConnectionState.waiting) {

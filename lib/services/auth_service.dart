@@ -114,35 +114,32 @@ class AuthService {
   }
 }
 
-String friendlyAuthError(Object error) {
+String authErrorKey(Object error) {
   if (error is FirebaseAuthException) {
     switch (error.code) {
       case 'invalid-email':
-        return 'Enter a valid email address.';
+        return 'errorInvalidEmail';
       case 'email-already-in-use':
-        return 'An account already exists for this email.';
+        return 'errorEmailInUse';
       case 'weak-password':
-        return 'Choose a stronger password (at least 6 characters).';
+        return 'errorWeakPassword';
       case 'invalid-credential':
       case 'user-not-found':
       case 'wrong-password':
-        return 'Email or password is incorrect.';
+        return 'errorInvalidCredentials';
       case 'user-disabled':
-        return 'This account has been disabled.';
+        return 'errorUserDisabled';
       case 'too-many-requests':
-        return 'Too many attempts. Wait a little and try again.';
+        return 'errorTooManyRequests';
       case 'network-request-failed':
-        return 'Network error. Check your connection and try again.';
+        return 'errorNetwork';
       case 'operation-not-allowed':
-        return 'This sign-in method is not enabled in Firebase yet.';
+        return 'errorProviderDisabled';
     }
   }
   if (error is FirebaseException && error.code == 'permission-denied') {
-    return 'Firebase denied this request. Check the Firestore security rules.';
+    return 'errorPermissionDenied';
   }
-  if (error is UnsupportedError) {
-    return error.message ?? 'This feature is unavailable.';
-  }
-  if (error is StateError) return error.message;
-  return 'Something went wrong. Please try again.';
+  if (error is UnsupportedError) return 'errorUnsupported';
+  return 'errorGeneric';
 }

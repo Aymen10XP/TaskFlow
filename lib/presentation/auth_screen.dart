@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -45,7 +46,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
     } catch (error) {
-      if (mounted) _showError(friendlyAuthError(error));
+      if (mounted) _showError(context.tr(authErrorKey(error)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -56,7 +57,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await AuthService.instance.signInWithGoogle();
     } catch (error) {
-      if (mounted) _showError(friendlyAuthError(error));
+      if (mounted) _showError(context.tr(authErrorKey(error)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -97,8 +98,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _registering
-                          ? 'Create your account to get started.'
-                          : 'Sign in to pick up where you left off.',
+                          ? context.tr('signUpIntro')
+                          : context.tr('signInIntro'),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 28),
@@ -106,14 +107,14 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextFormField(
                         controller: _nameController,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Name',
+                        decoration: InputDecoration(
+                          labelText: context.tr('name'),
                           prefixIcon: Icon(Icons.person_outline),
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) =>
                             value == null || value.trim().isEmpty
-                            ? 'Enter your name.'
+                            ? context.tr('enterName')
                             : null,
                       ),
                       const SizedBox(height: 14),
@@ -122,15 +123,15 @@ class _AuthScreenState extends State<AuthScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
+                      decoration: InputDecoration(
+                        labelText: context.tr('email'),
                         prefixIcon: Icon(Icons.email_outlined),
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         final email = value?.trim() ?? '';
                         if (email.isEmpty || !email.contains('@')) {
-                          return 'Enter a valid email address.';
+                          return context.tr('validEmail');
                         }
                         return null;
                       },
@@ -143,13 +144,13 @@ class _AuthScreenState extends State<AuthScreen> {
                           ? const [AutofillHints.newPassword]
                           : const [AutofillHints.password],
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: context.tr('password'),
                         prefixIcon: const Icon(Icons.lock_outline),
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
                           tooltip: _obscurePassword
-                              ? 'Show password'
-                              : 'Hide password',
+                              ? context.tr('showPassword')
+                              : context.tr('hidePassword'),
                           onPressed: () => setState(
                             () => _obscurePassword = !_obscurePassword,
                           ),
@@ -162,10 +163,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Enter your password.';
+                          return context.tr('enterPassword');
                         }
                         if (_registering && value.length < 6) {
-                          return 'Use at least 6 characters.';
+                          return context.tr('passwordLength');
                         }
                         return null;
                       },
@@ -175,19 +176,19 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextFormField(
                         controller: _confirmController,
                         obscureText: _obscurePassword,
-                        decoration: const InputDecoration(
-                          labelText: 'Confirm password',
+                        decoration: InputDecoration(
+                          labelText: context.tr('confirmPassword'),
                           prefixIcon: Icon(Icons.lock_reset_outlined),
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) => value != _passwordController.text
-                            ? 'Passwords do not match.'
+                            ? context.tr('passwordMismatch')
                             : null,
                       ),
                     ],
                     if (!_registering)
                       Align(
-                        alignment: Alignment.centerRight,
+                        alignment: AlignmentDirectional.centerEnd,
                         child: TextButton(
                           onPressed: _busy
                               ? null
@@ -195,7 +196,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   context,
                                   '/forgot-password',
                                 ),
-                          child: const Text('Forgot password?'),
+                          child: Text(context.tr('forgotPassword')),
                         ),
                       ),
                     const SizedBox(height: 12),
@@ -207,13 +208,13 @@ class _AuthScreenState extends State<AuthScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(_registering ? 'Create account' : 'Sign in'),
+                          : Text(context.tr(_registering ? 'signUp' : 'signIn')),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: _busy ? null : _googleSignIn,
                       icon: const Icon(Icons.login),
-                      label: const Text('Continue with Google'),
+                      label: Text(context.tr('googleSignIn')),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
@@ -222,8 +223,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           : () => setState(() => _registering = !_registering),
                       child: Text(
                         _registering
-                            ? 'Already have an account? Sign in'
-                            : 'New to TaskFlow? Create an account',
+                            ? context.tr('alreadyHaveAccount')
+                            : context.tr('newToTaskFlow'),
                       ),
                     ),
                   ],
@@ -262,18 +263,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await AuthService.instance.sendPasswordReset(_emailController.text);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'If an account exists for that email, a reset link has been sent.',
-            ),
-          ),
+          SnackBar(content: Text(context.tr('resetLinkSent'))),
         );
         Navigator.pop(context);
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyAuthError(error))));
+            .showSnackBar(
+              SnackBar(content: Text(context.tr(authErrorKey(error)))),
+            );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -282,7 +281,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Reset password')),
+    appBar: AppBar(title: Text(context.tr('resetPassword'))),
     body: Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -293,20 +292,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Enter your account email and we’ll send a reset link.',
-                ),
+                Text(context.tr('resetPasswordIntro')),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
+                  decoration: InputDecoration(
+                    labelText: context.tr('email'),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) => (value?.trim().contains('@') ?? false)
                       ? null
-                      : 'Enter a valid email address.',
+                      : context.tr('validEmail'),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
@@ -317,7 +314,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Send reset link'),
+                      : Text(context.tr('sendResetLink')),
                 ),
               ],
             ),

@@ -80,12 +80,12 @@ class _UnsupportedPlatformPage extends StatelessWidget {
   const _UnsupportedPlatformPage();
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
+  Widget build(BuildContext context) => Scaffold(
     body: Center(
       child: Padding(
         padding: EdgeInsets.all(24),
         child: Text(
-          'Firebase is configured for Android, iOS, and web. Run TaskFlow on one of those platforms.',
+          context.tr('unsupportedPlatform'),
           textAlign: TextAlign.center,
         ),
       ),
